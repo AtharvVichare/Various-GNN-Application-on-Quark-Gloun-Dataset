@@ -138,9 +138,9 @@ Input jet graph
 Clean encoder f(θ)              Perturbed encoder f(θ′)
 3× StableChebNetLayer(K)        θ′ = θ + σ·ε,  ε~N(0,1)
    X^(l+1) = LayerNorm(          (functional_call API)
-     X^(l) + ε·Σ_k T_k(L̃)
-     X^(l)(W_k − W_kᵀ − γI))
-ELU activation per layer
+     X^(l) + ε·Σ_k T_k(L̃)                | 
+     X^(l)(W_k − W_kᵀ − γI))             | 
+RELU activation per layer                | 
       │                                  │
   z_graph = cat(max_pool, mean_pool)   ẑ_graph
       │                                  │
