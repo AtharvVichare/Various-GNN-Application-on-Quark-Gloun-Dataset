@@ -144,7 +144,7 @@ where ϵ > 0 is the step size. Theorem 4 proves second-order stability:
 <img width="445" height="135" alt="image" src="https://github.com/user-attachments/assets/f225e9c7-f106-4dc2-b947-7844da18e746" />
 
 ---
-### ST 01 v3 — JetGLADC v3
+
 <img width="1433" height="627" alt="image" src="https://github.com/user-attachments/assets/2cd0a83c-64ec-4393-8f40-eea75358447e" />
 
 
