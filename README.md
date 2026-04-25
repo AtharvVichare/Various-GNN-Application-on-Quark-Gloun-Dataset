@@ -124,7 +124,78 @@ InMemoryDataset.collate → saved as jet_pyg_dataset.pt
 
 ---
 
-## Stable-ChebNet + Contrastive Learning
+### Stable-ChebNet + Contrastive Learning version 1
+
+**Notebook:** `ST-01.ipynb`
+
+**Architecture:** Stable-ChebNet encoder + GLADC perturbed dual-encoder + NT-Xent contrastive loss + binary classification head.
+
+```
+Input jet graph
+      │
+      ├──────────────────────────────────┐
+      ▼                                  ▼
+Clean encoder f(θ)              Perturbed encoder f(θ′)
+3× StableChebNetLayer(K)        θ′ = θ + σ·ε,  ε~N(0,1)
+   X^(l+1) = LayerNorm(          (functional_call API)
+     X^(l) + ε·Σ_k T_k(L̃)
+     X^(l)(W_k − W_kᵀ − γI))
+ELU activation per layer
+      │                                  │
+  z_graph = cat(max_pool, mean_pool)   ẑ_graph
+      │                                  │
+      └──────────┬───────────────────────┘
+                 │
+         Projection head
+         Linear → BN → ELU → Linear
+                 │
+         NT-Xent loss (L_con, τ=0.15)
+         + Binary CE loss (L_ce)
+         L_total = L_ce + λ(t)·L_con
+         λ ramps 0 → final over warmup epochs
+                 │
+         MLP classifier head (3 layers + BN)
+```
+
+**Config:**
+
+| Parameter | Value |
+|---|---|
+| ChebNet order K | configurable |
+| ChebNet layers | 3 |
+| Hidden dim | 128 |
+| Dual pool | max + mean → 256-dim |
+| Projection dim | configurable |
+| Perturbation σ | configurable |
+| ε (Euler step) | configurable |
+| γ (damping) | configurable |
+| Batch size | 64 |
+| LR schedule | OneCycleLR (peak 3e-3, warm-up → cosine) |
+| Contrastive temperature τ | 0.15 |
+| Grad clip | 2.0 |
+| Activation | RELU |
+
+**Key design decisions:**
+- `OneCycleLR` replaces `CosineAnnealingLR` — less aggressive early decay, faster initial convergence
+- Batch size 64 over 32 — more in-batch negatives for NT-Xent
+- Dual-pool readout (max ∥ mean) — richer global jet descriptor
+- `torch.func.functional_call` used for weight-perturbed encoder (autograd-safe)
+- Antisymmetric weights: `W_antisym = W − Wᵀ − γI` — guarantees Jacobian stability
+
+**Best test results:**
+
+| Metric | Value |
+|---|---|
+| Accuracy | **72.90%** |
+| ROC-AUC | **0.7869** |
+| Precision | 0.7422 |
+| Recall | 0.6928 |
+| F1 | 0.7166 |
+
+---
+
+
+## Stable-ChebNet + Contrastive Learning version 2
 
 Classifying quark vs gluon jets using a Stable-ChebNet encoder with contrastive learning.
 ---
@@ -173,10 +244,8 @@ where ϵ > 0 is the step size. Theorem 4 proves second-order stability:
 
 | Task | Model | Accuracy | ROC-AUC |
 |---|---|---|---|
-| Common Task 1 | CNN Autoencoder (linear probe) | 72.90% | 0.7877 |
-| Common Task 2 | ChebNet (K=5, 3-layer) | 72.90% | 0.7869 |
-| Specific Task v2 | JetGLADC v2 (Stable-ChebNet + NT-Xent) | 72.90% | 0.7869 |
-| Specific Task v3 | JetGLADC v2 (Stable-ChebNet + Supervised contrastive) | 72.47% | 0.7999 |
+| Stable-ChebNet + Contrastive Learning version 1 | Stable-ChebNet + NT-Xent | 72.90% | 0.7869 |
+| Stable-ChebNet + Contrastive Learning version 1 | Stable-ChebNet + Supervised contrastive | 72.47% | 0.7999 |
 
 
 ---
